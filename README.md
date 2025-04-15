@@ -13,7 +13,7 @@ Easy to deploy and customize
 
 First, clone the repository and install the required dependencies:
 
-$ git clone https://github.com/yourusername/credit-approval-app.git
+$ git clone https://github.com/githborabasaran/blank-app/tree/main
 $ cd credit-approval-app
 $ pip install -r requirements.txt
 ▶️ Run the App
