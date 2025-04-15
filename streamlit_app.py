@@ -199,3 +199,107 @@ elif page == 'Neural Network':
     They're useful in areas like image recognition and NLP.
     """)
 
+# Add a section for the accuracy plot
+st.markdown("### 📊 Model Accuracy Comparison 🏅")
+st.write("The bar chart below shows the accuracy of each model evaluated.")
+
+# Plot Accuracy of Each Model
+fig, ax = plt.subplots(figsize=(10, 6))
+model_names = list(results.keys())
+accuracies = [results[name]['Accuracy'] for name in model_names]
+
+ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+ax.set_xlabel('Accuracy', color='#001a33')
+ax.set_title('Model Accuracy Comparison', color='#cc0000')
+st.pyplot(fig)
+
+# Add a section for the ROC curve plot
+st.markdown("### 📈 ROC Curve for Each Model 📉")
+st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
+
+# Plot AUC Curve for Each Model
+fig, ax = plt.subplots(figsize=(10, 6))
+
+for name, model in models.items():
+    # Compute the ROC curve for the current model
+    try:
+        if len(np.unique(y_test)) > 2:  # Multi-class classification
+            # One-vs-Rest (OvR) approach for multi-class ROC curve
+            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed), pos_label=None)
+            auc_value = auc(fpr, tpr)
+        else:  # Binary classification
+            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed)[:, 1])
+            auc_value = auc(fpr, tpr)
+        
+        ax.plot(fpr, tpr, label=f'{name} (AUC = {auc_value:.2f})')
+
+    except Exception as e:
+        st.warning(f"Error computing ROC curve for {name}: {e}")
+
+ax.plot([0, 1], [0, 1], 'k--', label='Random Classifier (AUC = 0.5)')
+ax.set_xlabel('False Positive Rate', color='#001a33')
+ax.set_ylabel('True Positive Rate', color='#001a33')
+ax.set_title('Receiver Operating Characteristic (ROC) Curve', color='#cc0000')
+ax.legend(loc='lower right')
+st.pyplot(fig)
+
+# Display the best model after the plots
+st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+
+
+model = joblib.load("best_model.pkl")  # Ensure you saved it previously
+
+st.subheader("Enter your information below:")
+
+age = st.slider("Age", 18, 100, 30)
+job = st.selectbox("Job", ['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 
+                           'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown'])
+education = st.selectbox("Education", ['basic.4y', 'basic.6y', 'basic.9y', 'high.school', 
+                                       'illiterate', 'professional.course', 'university.degree', 'unknown'])
+default = st.selectbox("Has Credit in Default?", ['yes', 'no'])
+housing = st.selectbox("Has Housing Loan?", ['yes', 'no'])
+loan = st.selectbox("Has Personal Loan?", ['yes', 'no'])
+contact = st.selectbox("Contact Communication Type", ['cellular', 'telephone'])
+dayofweek = st.selectbox("Day of Week", ['mon', 'tue', 'wed', 'thu', 'fri'])
+duration = st.number_input("Last Contact Duration (seconds)", min_value=0, value=100)
+campaign = st.number_input("Number of Contacts During Campaign", min_value=1, value=1)
+pdays = st.number_input("Days Since Last Contact", min_value=-1, value=-1)
+nr_employed = st.number_input("Number of Employees (Economic Indicator)", min_value=0.0, value=5000.0)
+
+# Add missing columns with defaults (assume safest default or most common values)
+input_df = pd.DataFrame({
+    'age': [age],
+    'job': [job],
+    'education': [education],
+    'default': [default],
+    'housing': [housing],
+    'loan': [loan],
+    'contact': [contact],
+    'day_of_week': [dayofweek],
+    'duration': [duration],
+    'campaign': [campaign],
+    'pdays': [pdays],
+    'nr.employed': [nr_employed],
+    'previous': [0],  # Default to 0 previous contacts
+    'emp.var.rate': [1.1],  # Example average value; adjust if known
+    'poutcome': ['nonexistent'],  # Most common value for this field
+    'euribor3m': [4.5],  # Approximate average; adjust as needed
+    'month': ['may'],  # Default to most frequent month
+    'cons.price.idx': [93.2],  # Example value
+    'cons.conf.idx': [-40.0],  # Example value
+    'marital': ['married']  # Common marital status
+})
+
+# Optional: If you saved expected columns during training, you can reindex:
+# input_df = input_df.reindex(columns=expected_columns)
+
+# Apply preprocessing
+processed_input = preprocessor.transform(input_df)
+
+# Predict
+if st.button("Predict Credit Approval"):
+    prediction = model.predict(processed_input)
+    if prediction[0] == 1:
+        st.success("✅ Credit Approved!")
+    else:
+        st.error("❌ Credit Not Approved.")
