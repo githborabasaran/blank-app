@@ -322,7 +322,7 @@ input_df = pd.DataFrame({
 # input_df = input_df.reindex(columns=expected_columns)
 
 # Apply preprocessing
-processed_input = preprocessor.transform(input_df)
+#processed_input = preprocessor.transform(input_df)
 
 # Predict
 if st.button("Predict Credit Approval"):
