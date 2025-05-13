@@ -245,23 +245,23 @@ st.markdown("### 📈 ROC Curve for Each Model 📉")
 st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
 
 # Plot AUC Curve for Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
+#fig, ax = plt.subplots(figsize=(10, 6))
 
-for name, model in models.items():
+#for name, model in models.items():
     # Compute the ROC curve for the current model
-    try:
-        if len(np.unique(y_test)) > 2:  # Multi-class classification
+    #try:
+        #if len(np.unique(y_test)) > 2:  # Multi-class classification
             # One-vs-Rest (OvR) approach for multi-class ROC curve
-            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed), pos_label=None)
-            auc_value = auc(fpr, tpr)
-        else:  # Binary classification
-            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed)[:, 1])
-            auc_value = auc(fpr, tpr)
+           # fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed), pos_label=None)
+            #auc_value = auc(fpr, tpr)
+        #else:  # Binary classification
+            #fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed)[:, 1])
+           # auc_value = auc(fpr, tpr)
         
-        ax.plot(fpr, tpr, label=f'{name} (AUC = {auc_value:.2f})')
+        #ax.plot(fpr, tpr, label=f'{name} (AUC = {auc_value:.2f})')
 
-    except Exception as e:
-        st.warning(f"Error computing ROC curve for {name}: {e}")
+    #except Exception as e:
+        #st.warning(f"Error computing ROC curve for {name}: {e}")
 
 ax.plot([0, 1], [0, 1], 'k--', label='Random Classifier (AUC = 0.5)')
 ax.set_xlabel('False Positive Rate', color='#001a33')
