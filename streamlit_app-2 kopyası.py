@@ -256,6 +256,13 @@ models = {
 
         st.write("### 🏆 Model Performance")
         st.dataframe(pd.DataFrame(results).T)
+
+        if best_model:
+            with open("best_model.pkl", "wb") as f:
+                pickle.dump(best_model, f)
+            st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+
+        
 model_names = list(results.keys())
 accuracies = [results[name]['Accuracy'] for name in model_names]
 
