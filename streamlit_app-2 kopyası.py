@@ -232,8 +232,6 @@ st.write("The bar chart below shows the accuracy of each model evaluated.")
 
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
-results = {}
-        
 model_names = list(results.keys())
 accuracies = [results[name]['Accuracy'] for name in model_names]
 
