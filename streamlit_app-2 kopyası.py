@@ -333,7 +333,7 @@ if st.button("Predict Credit Approval"):
         st.error("❌ Credit Not Approved.")
 
 # Get prediction probability (for class 1 - approval)
-probability = model.predict_proba(processed_input)[0][1]
+#probability = model.predict_proba(processed_input)[0][1]
 
 # Scale probability to a credit score range (e.g., 300 to 850)
 credit_score = int(380 + (probability * 550))  # 550 = 850 - 300
