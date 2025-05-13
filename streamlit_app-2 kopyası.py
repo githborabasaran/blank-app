@@ -233,35 +233,6 @@ st.write("The bar chart below shows the accuracy of each model evaluated.")
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
 results = {}
-models = {
-            "Logistic Regression": LogisticRegression(),
-            "Random Forest": RandomForestClassifier(),
-            "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
-        }
-
-        best_model, best_acc = None, 0
-
-        for name, model in models.items():
-            model.fit(X_train_preprocessed, y_train_res)
-            if len(np.unique(y_test)) > 2:
-                auc_value = roc_auc_score(y_test, model.predict_proba(X_test_preprocessed), multi_class="ovr", average="macro")
-            else:
-                auc_value = roc_auc_score(y_test, model.predict_proba(X_test_preprocessed)[:, 1])
-            acc = accuracy_score(y_test, model.predict(X_test_preprocessed))
-            results[name] = {'Accuracy': acc, 'AUC': auc_value}
-
-            if acc > best_acc:
-                best_acc = acc
-                best_model = model
-
-        st.write("### 🏆 Model Performance")
-        st.dataframe(pd.DataFrame(results).T)
-
-        if best_model:
-            with open("best_model.pkl", "wb") as f:
-                pickle.dump(best_model, f)
-            st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
-
         
 model_names = list(results.keys())
 accuracies = [results[name]['Accuracy'] for name in model_names]
