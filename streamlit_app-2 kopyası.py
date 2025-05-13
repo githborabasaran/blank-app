@@ -271,7 +271,7 @@ st.write("The ROC curve below compares the true positive rate (TPR) and false po
 #st.pyplot(fig)
 
 # Display the best model after the plots
-st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+#st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
 
 
 
