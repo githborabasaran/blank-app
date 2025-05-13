@@ -336,7 +336,7 @@ if st.button("Predict Credit Approval"):
 #probability = model.predict_proba(processed_input)[0][1]
 
 # Scale probability to a credit score range (e.g., 300 to 850)
-credit_score = int(380 + (probability * 550))  # 550 = 850 - 300
+#credit_score = int(380 + (probability * 550))  # 550 = 850 - 300
 
 st.write(f"🧮 Estimated Credit Score: **{credit_score}**")
 
