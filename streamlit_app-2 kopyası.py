@@ -227,8 +227,8 @@ elif page == 'Neural Network':
     - Training a neural network involves adjusting the weights between the neurons to minimize the error.
     """)
 # Add a section for the accuracy plot
-st.markdown("### 📊 Model Accuracy Comparison 🏅")
-st.write("The bar chart below shows the accuracy of each model evaluated.")
+#st.markdown("### 📊 Model Accuracy Comparison 🏅")
+#st.write("The bar chart below shows the accuracy of each model evaluated.")
 
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
