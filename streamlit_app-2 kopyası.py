@@ -231,14 +231,14 @@ elif page == 'Neural Network':
 #st.write("The bar chart below shows the accuracy of each model evaluated.")
 
 # Plot Accuracy of Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
-model_names = list(results.keys())
-accuracies = [results[name]['Accuracy'] for name in model_names]
+#fig, ax = plt.subplots(figsize=(10, 6))
+#model_names = list(results.keys())
+#accuracies = [results[name]['Accuracy'] for name in model_names]
 
-ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
-ax.set_xlabel('Accuracy', color='#001a33')
-ax.set_title('Model Accuracy Comparison', color='#cc0000')
-st.pyplot(fig)
+#ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+#ax.set_xlabel('Accuracy', color='#001a33')
+#ax.set_title('Model Accuracy Comparison', color='#cc0000')
+#st.pyplot(fig)
 
 # Add a section for the ROC curve plot
 st.markdown("### 📈 ROC Curve for Each Model 📉")
