@@ -102,7 +102,7 @@ page = st.radio("Navigate to Model Explanations:", ['Model Performance', 'Logist
 # The page condition
 if page == 'Model Performance':
     # ✅ Use hardcoded file path
-    file_path = '/workspaces/blank-app/bank-additional.csv'
+    file_path = 'bank-additional.csv'
 
     if os.path.exists(file_path):
         df = pd.read_csv(file_path, sep=';', quotechar='"')
