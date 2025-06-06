@@ -224,43 +224,7 @@ if page == 'Model Performance':
     else:
         st.error(f"🚫 File not found at: {file_path}")
 
-elif page == 'Logistic Regression':
-    st.write("""
-    ### 📘 Logistic Regression
-    Logistic Regression is a statistical method used for binary classification. 
-    It estimates the probability of a binary response based on one or more predictor variables.
-    
-    **Key points:**
-    - It uses the logistic function to model the probability of the default class (usually 1).
-    - It is widely used due to its simplicity and efficiency for binary classification tasks.
-    - The model provides a probabilistic output which can be converted to class labels.
-    - Logistic Regression works best with linearly separable data.
-    """)
 
-elif page == 'Random Forest':
-    st.write("""
-    ### 📚 Random Forest
-    Random Forest is an ensemble learning method that constructs multiple decision trees and merges them together 
-    to improve accuracy and control overfitting.
-    
-    **Key points:**
-    - It reduces overfitting by averaging the predictions of multiple trees.
-    - It can be used for both classification and regression tasks.
-    - Random Forest is a powerful algorithm that works well on large datasets with a high-dimensional feature space.
-    - The final prediction is made by taking a majority vote (for classification) or averaging the outputs (for regression).
-    """)
-
-elif page == 'Neural Network':
-    st.write("""
-    ### 🤖 Neural Network
-    A Neural Network is a model inspired by the human brain that learns patterns from data through a series of interconnected nodes (neurons).
-    
-    **Key points:**
-    - It is composed of layers: input layer, hidden layers, and output layer.
-    - Neural Networks are highly flexible and can model complex non-linear relationships in data.
-    - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
-    - Training a neural network involves adjusting the weights between the neurons to minimize the error.
-    """)
 # Add a section for the accuracy plot
 st.markdown("### 📊 Model Accuracy Comparison 🏅")
 st.write("The bar chart below shows the accuracy of each model evaluated.")
@@ -384,3 +348,42 @@ elif credit_score >= 400:
     st.warning("🧡 Fair credit score.")
 else:
     st.error("❤️ Poor credit score.")
+
+elif page == 'Logistic Regression':
+    st.write("""
+    ### 📘 Logistic Regression
+    Logistic Regression is a statistical method used for binary classification. 
+    It estimates the probability of a binary response based on one or more predictor variables.
+    
+    **Key points:**
+    - It uses the logistic function to model the probability of the default class (usually 1).
+    - It is widely used due to its simplicity and efficiency for binary classification tasks.
+    - The model provides a probabilistic output which can be converted to class labels.
+    - Logistic Regression works best with linearly separable data.
+    """)
+
+elif page == 'Random Forest':
+    st.write("""
+    ### 📚 Random Forest
+    Random Forest is an ensemble learning method that constructs multiple decision trees and merges them together 
+    to improve accuracy and control overfitting.
+    
+    **Key points:**
+    - It reduces overfitting by averaging the predictions of multiple trees.
+    - It can be used for both classification and regression tasks.
+    - Random Forest is a powerful algorithm that works well on large datasets with a high-dimensional feature space.
+    - The final prediction is made by taking a majority vote (for classification) or averaging the outputs (for regression).
+    """)
+
+elif page == 'Neural Network':
+    st.write("""
+    ### 🤖 Neural Network
+    A Neural Network is a model inspired by the human brain that learns patterns from data through a series of interconnected nodes (neurons).
+    
+    **Key points:**
+    - It is composed of layers: input layer, hidden layers, and output layer.
+    - Neural Networks are highly flexible and can model complex non-linear relationships in data.
+    - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
+    - Training a neural network involves adjusting the weights between the neurons to minimize the error.
+    """)
+
