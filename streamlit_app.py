@@ -264,6 +264,8 @@ elif page == 'Neural Network':
 st.markdown("### 📊 Model Accuracy Comparison 🏅")
 st.write("The bar chart below shows the accuracy of each model evaluated.")
 
+results={}
+
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
 model_names = list(results.keys())
