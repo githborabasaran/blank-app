@@ -223,6 +223,11 @@ if page == 'Model Performance':
     else:
         st.error(f"🚫 File not found at: {file_path}")
 
+
+# Add a section for the accuracy plot
+st.markdown("### 📊 Model Accuracy Comparison 🏅")
+st.write("The bar chart below shows the accuracy of each model evaluated.")
+
 elif page == 'Logistic Regression':
     st.write("""
     ### 📘 Logistic Regression
