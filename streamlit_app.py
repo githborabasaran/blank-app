@@ -217,7 +217,7 @@ if page == 'Model Performance':
 
             # Save the best model
             if best_model:
-                with open("best_model.pkl", "wb") as f:
+                with open("best_model-2.pkl", "wb") as f:
                     pickle.dump(best_model, f)
                 st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
     
