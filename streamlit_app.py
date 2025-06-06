@@ -127,9 +127,9 @@ if page == 'Model Performance':
             if y.dtypes == 'object':
                 y = LabelEncoder().fit_transform(y)
 
-# Split the data
+            # Split the data into training and test sets
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            
+
             # Apply random under-sampling
             under_sampler = RandomUnderSampler(random_state=42)
             X_train_res, y_train_res = under_sampler.fit_resample(X_train, y_train)
@@ -310,7 +310,7 @@ st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy']
 
 
 
-model = joblib.load("best_model-2.pkl")  # Ensure you saved it previously
+model = joblib.load("best_model.pkl")  # Ensure you saved it previously
 
 st.subheader("Enter your information below:")
 
@@ -384,6 +384,7 @@ elif credit_score >= 400:
     st.warning("🧡 Fair credit score.")
 else:
     st.error("❤️ Poor credit score.")
+)
 
 
 
