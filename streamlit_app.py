@@ -310,7 +310,7 @@ st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy']
 
 
 
-model = joblib.load("best_model.pkl")  # Ensure you saved it previously
+model = joblib.load("best_model-2.pkl")  # Ensure you saved it previously
 
 st.subheader("Enter your information below:")
 
