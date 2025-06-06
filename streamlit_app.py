@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.feature_selection import RFE
 import os
+
 from imblearn.under_sampling import RandomUnderSampler  # Import RandomUnderSampler
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve, auc
@@ -223,7 +224,6 @@ if page == 'Model Performance':
     else:
         st.error(f"🚫 File not found at: {file_path}")
 
-
 elif page == 'Logistic Regression':
     st.write("""
     ### 📘 Logistic Regression
@@ -261,19 +261,9 @@ elif page == 'Neural Network':
     - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
     - Training a neural network involves adjusting the weights between the neurons to minimize the error.
     """)
-
-
-
 # Add a section for the accuracy plot
 st.markdown("### 📊 Model Accuracy Comparison 🏅")
 st.write("The bar chart below shows the accuracy of each model evaluated.")
-
-results={}
-models = {
-                "Logistic Regression": LogisticRegression(),
-                "Random Forest": RandomForestClassifier(),
-                "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
-            }
 
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -314,9 +304,11 @@ ax.set_ylabel('True Positive Rate', color='#001a33')
 ax.set_title('Receiver Operating Characteristic (ROC) Curve', color='#cc0000')
 ax.legend(loc='lower right')
 st.pyplot(fig)
-best_model, best_acc = None, 0
+
 # Display the best model after the plots
 st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+
+
 
 model = joblib.load("best_model.pkl")  # Ensure you saved it previously
 
@@ -392,7 +384,6 @@ elif credit_score >= 400:
     st.warning("🧡 Fair credit score.")
 else:
     st.error("❤️ Poor credit score.")
-
 
 
 
