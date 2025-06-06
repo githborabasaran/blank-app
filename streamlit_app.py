@@ -260,11 +260,18 @@ elif page == 'Neural Network':
     - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
     - Training a neural network involves adjusting the weights between the neurons to minimize the error.
     """)
+
+
 # Add a section for the accuracy plot
 st.markdown("### 📊 Model Accuracy Comparison 🏅")
 st.write("The bar chart below shows the accuracy of each model evaluated.")
 
 results={}
+models = {
+                "Logistic Regression": LogisticRegression(),
+                "Random Forest": RandomForestClassifier(),
+                "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
+            }
 
 # Plot Accuracy of Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -282,11 +289,7 @@ st.write("The ROC curve below compares the true positive rate (TPR) and false po
 
 # Plot AUC Curve for Each Model
 fig, ax = plt.subplots(figsize=(10, 6))
-models = {
-                "Logistic Regression": LogisticRegression(),
-                "Random Forest": RandomForestClassifier(),
-                "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
-            }
+
 for name, model in models.items():
     # Compute the ROC curve for the current model
     try:
