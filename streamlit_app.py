@@ -137,7 +137,7 @@ if page == 'Model Performance':
 
             X_train_transformed = pipeline.fit_transform(X_train)
             X_test_transformed = pipeline.transform(X_test)
-
+            under_sampler = RandomUnderSampler(random_state=42)
 # Apply random under-sampling on preprocessed data
             X_train_res, y_train_res = under_sampler.fit_resample(X_train_transformed, y_train)
 
