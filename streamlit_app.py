@@ -127,21 +127,19 @@ if page == 'Model Performance':
             if y.dtypes == 'object':
                 y = LabelEncoder().fit_transform(y)
 
-            # Split the data into training and test sets
+# Split the data
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Apply random under-sampling
-            under_sampler = RandomUnderSampler(random_state=42)
-            X_train_res, y_train_res = under_sampler.fit_resample(X_train, y_train)
-
-            # Create a pipeline for preprocessing
+# Preprocess BEFORE resampling
             pipeline = Pipeline([
-                ('preprocessor', preprocessor)
-            ])
+    ('preprocessor', preprocessor)
+])
 
-            # Preprocess the training and test data
-            X_train_preprocessed = pipeline.fit_transform(X_train_res)
-            X_test_preprocessed = pipeline.transform(X_test)
+            X_train_transformed = pipeline.fit_transform(X_train)
+            X_test_transformed = pipeline.transform(X_test)
+
+# Apply random under-sampling on preprocessed data
+            X_train_res, y_train_res = under_sampler.fit_resample(X_train_transformed, y_train)
 
             # Extract feature names after preprocessing
             feature_names = []
