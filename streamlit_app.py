@@ -131,17 +131,18 @@ if page == 'Model Performance':
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
             # Apply random under-sampling
-            under_sampler = RandomUnderSampler(random_state=42)
-            X_train_res, y_train_res = under_sampler.fit_resample(X_train, y_train)
-
-            # Create a pipeline for preprocessing
+          # Create a pipeline for preprocessing
             pipeline = Pipeline([
-                ('preprocessor', preprocessor)
-            ])
+    ('preprocessor', preprocessor)
+])
 
-            # Preprocess the training and test data
-            X_train_preprocessed = pipeline.fit_transform(X_train_res)
-            X_test_preprocessed = pipeline.transform(X_test)
+# Preprocess the training and test data first
+            X_train_preprocessed = pipeline.fit_transform(X_train) # Fit and transform on X_train
+            X_test_preprocessed = pipeline.transform(X_test) # Transform X_test
+
+# Apply random under-sampling to the preprocessed training data
+            under_sampler = RandomUnderSampler(random_state=42)
+            X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
 
             # Extract feature names after preprocessing
             feature_names = []
