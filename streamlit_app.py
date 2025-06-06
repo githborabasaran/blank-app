@@ -384,7 +384,7 @@ elif credit_score >= 400:
     st.warning("🧡 Fair credit score.")
 else:
     st.error("❤️ Poor credit score.")
-)
+
 
 
 
