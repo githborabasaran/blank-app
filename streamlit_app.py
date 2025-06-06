@@ -312,7 +312,7 @@ ax.set_ylabel('True Positive Rate', color='#001a33')
 ax.set_title('Receiver Operating Characteristic (ROC) Curve', color='#cc0000')
 ax.legend(loc='lower right')
 st.pyplot(fig)
-
+best_model, best_acc = None, 0
 # Display the best model after the plots
 st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
 
