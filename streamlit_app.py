@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -12,13 +12,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.feature_selection import RFE
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, auc
+from imblearn.under_sampling import RandomUnderSampler
 import os
 
-from imblearn.under_sampling import RandomUnderSampler  # Import RandomUnderSampler
-import joblib
-from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve, auc
-
-# Set Streamlit theme with vibrant colors
+# --- Streamlit theme ---
 st.markdown("""
     <style>
         body {
@@ -28,12 +26,11 @@ st.markdown("""
         .stApp {
             background-color: #cce0ff;
         }
-        .stTitle {
+        h1 {
             color: #ff4500;
-            font-size: 36px;
             font-weight: bold;
         }
-        .stSelectbox label {
+        .stSelectbox label, .stSlider label {
             color: #cc0000;
             font-size: 18px;
         }
@@ -52,227 +49,175 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def preprocess_data(df, target_column):
-    df = df.dropna().drop_duplicates()
-    num_features = df.select_dtypes(include=['int64', 'float64']).columns.to_list()
-    cat_features = df.select_dtypes(include=['object', 'category']).columns.to_list()
-    
-    if target_column in num_features:
-        num_features.remove(target_column)
-    if target_column in cat_features:
-        cat_features.remove(target_column)
-    
-    preprocessor = ColumnTransformer([
-        ('num', StandardScaler(), num_features),
-        ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_features)
-    ])
-    
-    return df, preprocessor, num_features, cat_features
-
-# Navigation Buttons
-st.markdown("""
-    <style>
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
-        .logo-container img {
-            width: 70px;
-            margin-right: 60px;
-        }
-        .logo-container h1 {
-            margin: 0;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# Display title with logo
-
-st.markdown(f"""
-    <div class="logo-container">
-       
-        <h1>🎨📊 ADS542 - Project Streamlit</h1>
-    </div>
-""", unsafe_allow_html=True)
+# Title
+st.title("🎨📊 ADS542 - Project Streamlit")
 
 st.markdown("### 🚀 Upload your dataset and explore the results!")
 
-# Add navigation buttons for model explanation sections
-page = st.radio("Navigate to Model Explanations:", ['Model Performance', 'Logistic Regression', 'Random Forest', 'Neural Network'])
-# The page condition
-if page == 'Model Performance':
-    # ✅ Use hardcoded file path
-    file_path = 'bank-additional.csv'
+# --- Load dataset ---
+file_path = 'bank-additional.csv'
 
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path, sep=';', quotechar='"')
-        st.write("### 📜 Uploaded Data Preview")
-        st.dataframe(df.head())
+if not os.path.exists(file_path):
+    st.error(f"File '{file_path}' not found! Please upload your dataset or check the file path.")
+    st.stop()
 
-        # Assuming the target column is always 'y'
-        target_column = 'y'
-        
-        # Check if the target column exists in the dataset
-        if target_column not in df.columns:
-            st.error(f"🚫 The target column '{target_column}' does not exist in the dataset!")
-        else:
-            # Preprocess the data
-            df, preprocessor, num_features, cat_features = preprocess_data(df, target_column)
+df = pd.read_csv(file_path, sep=';', quotechar='"')
+st.write("### 📜 Dataset Preview")
+st.dataframe(df.head())
 
-            # Split the features and target variable
-            X = df.drop(columns=[target_column])
-            y = df[target_column]
+target_column = 'y'
+if target_column not in df.columns:
+    st.error(f"🚫 The target column '{target_column}' does not exist in the dataset!")
+    st.stop()
 
-            # If y is categorical, apply LabelEncoder
-            if y.dtypes == 'object':
-                y = LabelEncoder().fit_transform(y)
+# --- Preprocessing ---
 
-            # Split the data into training and test sets
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Clean data
+df = df.dropna().drop_duplicates()
 
-            # Apply random under-sampling
-            under_sampler = RandomUnderSampler(random_state=42)
-            X_train_res, y_train_res = under_sampler.fit_resample(X_train, y_train)
+# Identify numeric and categorical features
+num_features = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_features = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
-            # Create a pipeline for preprocessing
-            pipeline = Pipeline([
-                ('preprocessor', preprocessor)
-            ])
+# Remove target column from features list
+if target_column in num_features:
+    num_features.remove(target_column)
+if target_column in cat_features:
+    cat_features.remove(target_column)
 
-            # Preprocess the training and test data
-            X_train_preprocessed = pipeline.fit_transform(X_train_res)
-            X_test_preprocessed = pipeline.transform(X_test)
+# Build preprocessing pipeline
+preprocessor = ColumnTransformer([
+    ('num', StandardScaler(), num_features),
+    ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_features)
+])
 
-            # Extract feature names after preprocessing
-            feature_names = []
-            for name, transformer, columns in preprocessor.transformers_:
-                if hasattr(transformer, 'get_feature_names_out'):
-                    feature_names.extend(transformer.get_feature_names_out(columns))
-                else:
-                    feature_names.extend(columns)
+# Split features and target
+X = df.drop(columns=[target_column])
+y = df[target_column]
 
-            # Feature selection using RFE
-            model_rfe = LogisticRegression(random_state=42)
-            selector = RFE(model_rfe, n_features_to_select=min(10, X_train_preprocessed.shape[1]))
-            X_train_rfe = selector.fit_transform(X_train_preprocessed, y_train_res)
+# Encode target if needed
+if y.dtype == 'object':
+    y = LabelEncoder().fit_transform(y)
 
-            # Train a Random Forest model for feature importance
-            rf_model = RandomForestClassifier(random_state=42)
-            rf_model.fit(X_train_preprocessed, y_train_res)
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Get feature importances and select top features
-            importances = rf_model.feature_importances_
-            indices = np.argsort(importances)[::-1]
+# Fit preprocessor only on training set
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
 
-            top_n = min(10, len(feature_names))
-            top_features = [feature_names[i] for i in indices[:top_n]]
+# --- Undersample ---
+under_sampler = RandomUnderSampler(random_state=42)
+X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
 
-            st.write("### 🌟 Top 10 Important Features")
-            st.dataframe(pd.DataFrame({'Feature': top_features, 'Importance': importances[indices[:top_n]]}))
+# --- Extract feature names ---
+feature_names = []
 
-            # Plot feature importance
-            fig, ax = plt.subplots()
-            ax.barh(top_features, importances[indices[:top_n]], color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
-            ax.set_xlabel("Feature Importance", color="#001a33")
-            ax.set_title("Top 10 Important Features", color="#cc0000")
-            st.pyplot(fig)
+# numeric feature names
+feature_names.extend(num_features)
 
-            # Model evaluation
-            results = {}
-            models = {
-                "Logistic Regression": LogisticRegression(),
-                "Random Forest": RandomForestClassifier(),
-                "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
-            }
+# categorical feature names from onehot encoder
+ohe = preprocessor.named_transformers_['cat']
+cat_feature_names = ohe.get_feature_names_out(cat_features)
+feature_names.extend(cat_feature_names.tolist())
 
-            best_model, best_acc = None, 0
+# --- Feature Selection with RFE ---
+rfe_model = LogisticRegression(random_state=42, max_iter=1000)
+selector = RFE(rfe_model, n_features_to_select=min(10, X_train_res.shape[1]))
+X_train_rfe = selector.fit_transform(X_train_res, y_train_res)
 
-            # Train and evaluate models
-            for name, model in models.items():
-                model.fit(X_train_preprocessed, y_train_res)
-                y_pred = model.predict(X_test_preprocessed)
-                y_proba = model.predict_proba(X_test_preprocessed)
+# --- Random Forest for feature importance ---
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train_res, y_train_res)
+importances = rf_model.feature_importances_
+indices = np.argsort(importances)[::-1]
 
-                acc = accuracy_score(y_test, y_pred)
+top_n = min(10, len(feature_names))
+top_features = [feature_names[i] for i in indices[:top_n]]
 
-                # Handle binary and multiclass separately for AUC
-                if len(np.unique(y_test)) == 2:
-                    auc_value = roc_auc_score(y_test, y_proba[:, 1])
-                else:
-                    num_classes = len(np.unique(y_test))
-                    if y_proba.shape[1] != num_classes:
-                        st.warning(f"{name} returned {y_proba.shape[1]} prob columns, expected {num_classes}")
-                        auc_value = np.nan
-                    else:
-                        auc_value = roc_auc_score(y_test, y_proba, multi_class="ovr", average="macro")
+st.write("### 🌟 Top 10 Important Features")
+st.dataframe(pd.DataFrame({'Feature': top_features, 'Importance': importances[indices[:top_n]]}))
 
-                results[name] = {'Accuracy': acc, 'AUC': auc_value}
+fig, ax = plt.subplots()
+ax.barh(top_features[::-1], importances[indices[:top_n]][::-1], color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+ax.set_xlabel("Feature Importance", color="#001a33")
+ax.set_title("Top 10 Important Features", color="#cc0000")
+st.pyplot(fig)
 
-                if acc > best_acc:
-                    best_acc = acc
-                    best_model = model
+# --- Train models ---
+results = {}
+models = {
+    "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000),
+    "Random Forest": RandomForestClassifier(random_state=42),
+    "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
+}
 
-            st.write("### 🏆 Model Performance")
-            st.dataframe(pd.DataFrame(results).T)
+best_model = None
+best_acc = 0
 
-            # Save the best model
-            if best_model:
-                with open("best_model.pkl", "wb") as f:
-                    pickle.dump(best_model, f)
-                st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+for name, model in models.items():
+    model.fit(X_train_res, y_train_res)
+    y_pred = model.predict(X_test_preprocessed)
     
+    if hasattr(model, "predict_proba"):
+        y_proba = model.predict_proba(X_test_preprocessed)
     else:
-        st.error(f"🚫 File not found at: {file_path}")
+        y_proba = None
 
-elif page == 'Logistic Regression':
-    st.write("""
-    ### 📘 Logistic Regression
-    Logistic Regression is a statistical method used for binary classification. 
-    It estimates the probability of a binary response based on one or more predictor variables.
-    
-    **Key points:**
-    - It uses the logistic function to model the probability of the default class (usually 1).
-    - It is widely used due to its simplicity and efficiency for binary classification tasks.
-    - The model provides a probabilistic output which can be converted to class labels.
-    - Logistic Regression works best with linearly separable data.
-    """)
+    acc = accuracy_score(y_test, y_pred)
+    auc_value = np.nan
+    if y_proba is not None:
+        if len(np.unique(y_test)) == 2:
+            auc_value = roc_auc_score(y_test, y_proba[:, 1])
+        else:
+            from sklearn.preprocessing import label_binarize
+            y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+            if y_proba.shape[1] == y_test_bin.shape[1]:
+                auc_value = roc_auc_score(y_test_bin, y_proba, multi_class='ovr', average='macro')
 
-elif page == 'Random Forest':
-    st.write("""
-    ### 📚 Random Forest
-    Random Forest is an ensemble learning method that constructs multiple decision trees and merges them together 
-    to improve accuracy and control overfitting.
-    
-    **Key points:**
-    - It reduces overfitting by averaging the predictions of multiple trees.
-    - It can be used for both classification and regression tasks.
-    - Random Forest is a powerful algorithm that works well on large datasets with a high-dimensional feature space.
-    - The final prediction is made by taking a majority vote (for classification) or averaging the outputs (for regression).
-    """)
+    results[name] = {'Accuracy': acc, 'AUC': auc_value}
 
-elif page == 'Neural Network':
-    st.write("""
-    ### 🤖 Neural Network
-    A Neural Network is a model inspired by the human brain that learns patterns from data through a series of interconnected nodes (neurons).
-    
-    **Key points:**
-    - It is composed of layers: input layer, hidden layers, and output layer.
-    - Neural Networks are highly flexible and can model complex non-linear relationships in data.
-    - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
-    - Training a neural network involves adjusting the weights between the neurons to minimize the error.
-    """)
-# Add a section for the accuracy plot
+    if acc > best_acc:
+        best_acc = acc
+        best_model = model
+
+# --- Display model accuracy ---
 st.markdown("### 📊 Model Accuracy Comparison 🏅")
-st.write("The bar chart below shows the accuracy of each model evaluated.")
-
-# Plot Accuracy of Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
-model_names = list(results.keys())
-accuracies = [results[name]['Accuracy'] for name in model_names]
-
-ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.barh(list(results.keys()), [r['Accuracy'] for r in results.values()], color=['#001a33', '#ff4500', '#990000'])
 ax.set_xlabel('Accuracy', color='#001a33')
 ax.set_title('Model Accuracy Comparison', color='#cc0000')
+st.pyplot(fig)
+
+# --- ROC curves ---
+st.markdown("### 📈 ROC Curve for Each Model 📉")
+fig, ax = plt.subplots(figsize=(8, 6))
+
+for name, model in models.items():
+    if not hasattr(model, "predict_proba"):
+        continue
+
+    y_proba = model.predict_proba(X_test_preprocessed)
+
+    if len(np.unique(y_test)) == 2:
+        fpr, tpr, _ = roc_curve(y_test, y_proba[:, 1])
+        roc_auc = auc(fpr, tpr)
+        ax.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.2f})")
+    else:
+        from sklearn.preprocessing import label_binarize
+        y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+        if y_proba.shape[1] != y_test_bin.shape[1]:
+            continue
+        for i in range(y_test_bin.shape[1]):
+            fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
+            roc_auc = auc(fpr, tpr)
+            ax.plot(fpr, tpr, label=f"{name} Class {i} (AUC = {roc_auc:.2f})")
+
+ax.plot([0,1], [0,1], 'k--')
+ax.set_xlabel('False Positive Rate')
+ax.set_ylabel('True Positive Rate')
+ax.set_title('ROC Curves')
+ax.legend()
 st.pyplot(fig)
 
 # Add a section for the ROC curve plot
