@@ -1,5 +1,5 @@
-scikit-learn==1.2.2
-imbalanced-learn==0.10.1
+scikit-learn
+imbalanced-learn
 numpy
 pandas
 matplotlib
