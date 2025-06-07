@@ -109,8 +109,11 @@ X_test_preprocessed = preprocessor.transform(X_test)
 # --- Undersample ---
 under_sampler = RandomUnderSampler(random_state=42)
 
-if hasattr(X_train_preprocessed, 'toarray'):
-    X_train_preprocessed = X_train_preprocessed.toarray()
+st.write("Type of X_train_preprocessed:", type(X_train_preprocessed))
+if hasattr(X_train_preprocessed, 'dtype'):
+    st.write("Data type of X_train_preprocessed:", X_train_preprocessed.dtype)
+else:
+    st.write("X_train_preprocessed has no dtype attribute")
 
 X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
 
