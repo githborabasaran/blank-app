@@ -300,12 +300,11 @@ if model:
             st.error("❤️ Poor credit score.")
 
 
-else:
-        st.error(f"🚫 File not found at: {file_path}")
-        results={}
+        else:
+            st.error(f"🚫 File not found at: {file_path}")
+            results={}
 
           
-
 
 elif page == 'Logistic Regression':
     st.write("""
