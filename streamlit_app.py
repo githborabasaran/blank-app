@@ -320,6 +320,7 @@ if page == 'Model Performance':
 
     else:
         st.error(f"🚫 File not found at: {file_path}")
+        results={}
 
 
 elif page == 'Logistic Regression':
