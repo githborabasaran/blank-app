@@ -15,8 +15,6 @@ from sklearn.feature_selection import RFE
 import os
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve, auc
-import imblearn
-import sklearn
 from imblearn.under_sampling import RandomUnderSampler
 
 # Set Streamlit theme with vibrant colors
