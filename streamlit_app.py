@@ -109,17 +109,6 @@ X_test_preprocessed = preprocessor.transform(X_test)
 # --- Undersample ---
 under_sampler = RandomUnderSampler(random_state=42)
 
-y_train_array = np.array(y_train)
-st.write("Type after conversion:", type(y_train_array))
-st.write("Data type after conversion:", y_train_array.dtype)
-
-
-if hasattr(X_train_preprocessed, "toarray"):
-    X_train_preprocessed = X_train_preprocessed.toarray()
-    st.write("Converted X_train_preprocessed to dense numpy array")
-else:
-    st.write("X_train_preprocessed is already dense")
-
 X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train_array)
 
 
