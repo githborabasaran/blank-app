@@ -13,8 +13,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.feature_selection import RFE
 from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, auc
-from imblearn.under_sampling import RandomUnderSampler
 import os
+import joblib
 
 # --- Streamlit theme ---
 st.markdown("""
@@ -106,9 +106,9 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 X_train_preprocessed = preprocessor.fit_transform(X_train)
 X_test_preprocessed = preprocessor.transform(X_test)
 
-# --- Undersample ---
-under_sampler = RandomUnderSampler(random_state=42)
-X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
+# --- No Undersampling ---
+# Use original data without undersampling
+X_train_res, y_train_res = X_train_preprocessed, y_train
 
 # --- Extract feature names ---
 feature_names = []
@@ -220,42 +220,14 @@ ax.set_title('ROC Curves')
 ax.legend()
 st.pyplot(fig)
 
-# Add a section for the ROC curve plot
-st.markdown("### 📈 ROC Curve for Each Model 📉")
-st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
-
-# Plot AUC Curve for Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
-
-for name, model in models.items():
-    # Compute the ROC curve for the current model
-    try:
-        if len(np.unique(y_test)) > 2:  # Multi-class classification
-            # One-vs-Rest (OvR) approach for multi-class ROC curve
-            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed), pos_label=None)
-            auc_value = auc(fpr, tpr)
-        else:  # Binary classification
-            fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test_preprocessed)[:, 1])
-            auc_value = auc(fpr, tpr)
-        
-        ax.plot(fpr, tpr, label=f'{name} (AUC = {auc_value:.2f})')
-
-    except Exception as e:
-        st.warning(f"Error computing ROC curve for {name}: {e}")
-
-ax.plot([0, 1], [0, 1], 'k--', label='Random Classifier (AUC = 0.5)')
-ax.set_xlabel('False Positive Rate', color='#001a33')
-ax.set_ylabel('True Positive Rate', color='#001a33')
-ax.set_title('Receiver Operating Characteristic (ROC) Curve', color='#cc0000')
-ax.legend(loc='lower right')
-st.pyplot(fig)
-
 # Display the best model after the plots
 st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
 
+# Save the best model to disk (optional)
+joblib.dump(best_model, "best_model.pkl")
 
-
-model = joblib.load("best_model.pkl")  # Ensure you saved it previously
+# Load the saved model
+model = joblib.load("best_model.pkl")ously
 
 st.subheader("Enter your information below:")
 
