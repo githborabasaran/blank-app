@@ -110,41 +110,30 @@ if page == 'Model Performance':
         st.write("### 📜 Uploaded Data Preview")
         st.dataframe(df.head())
 
-        # Assuming the target column is always 'y'
         target_column = 'y'
-        
-        # Check if the target column exists in the dataset
         if target_column not in df.columns:
             st.error(f"🚫 The target column '{target_column}' does not exist in the dataset!")
         else:
-            # Preprocess the data
+            # Preprocess data
             df, preprocessor, num_features, cat_features = preprocess_data(df, target_column)
 
-            # Split the features and target variable
             X = df.drop(columns=[target_column])
             y = df[target_column]
 
-            # If y is categorical, apply LabelEncoder
             if y.dtypes == 'object':
                 y = LabelEncoder().fit_transform(y)
 
-            # Split the data into training and test sets
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-            # Apply random under-sampling
             under_sampler = RandomUnderSampler(random_state=42)
             X_train_res, y_train_res = under_sampler.fit_resample(X_train, y_train)
 
-            # Create a pipeline for preprocessing
-            pipeline = Pipeline([
-                ('preprocessor', preprocessor)
-            ])
+            pipeline = Pipeline([('preprocessor', preprocessor)])
 
-            # Preprocess the training and test data
             X_train_preprocessed = pipeline.fit_transform(X_train_res)
             X_test_preprocessed = pipeline.transform(X_test)
 
-            # Extract feature names after preprocessing
+            # Feature names extraction
             feature_names = []
             for name, transformer, columns in preprocessor.transformers_:
                 if hasattr(transformer, 'get_feature_names_out'):
@@ -152,16 +141,15 @@ if page == 'Model Performance':
                 else:
                     feature_names.extend(columns)
 
-            # Feature selection using RFE
+            # Feature selection with RFE
             model_rfe = LogisticRegression(random_state=42)
             selector = RFE(model_rfe, n_features_to_select=min(10, X_train_preprocessed.shape[1]))
             X_train_rfe = selector.fit_transform(X_train_preprocessed, y_train_res)
 
-            # Train a Random Forest model for feature importance
+            # Random Forest for feature importance
             rf_model = RandomForestClassifier(random_state=42)
             rf_model.fit(X_train_preprocessed, y_train_res)
 
-            # Get feature importances and select top features
             importances = rf_model.feature_importances_
             indices = np.argsort(importances)[::-1]
 
@@ -171,14 +159,13 @@ if page == 'Model Performance':
             st.write("### 🌟 Top 10 Important Features")
             st.dataframe(pd.DataFrame({'Feature': top_features, 'Importance': importances[indices[:top_n]]}))
 
-            # Plot feature importance
             fig, ax = plt.subplots()
             ax.barh(top_features, importances[indices[:top_n]], color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
             ax.set_xlabel("Feature Importance", color="#001a33")
             ax.set_title("Top 10 Important Features", color="#cc0000")
             st.pyplot(fig)
 
-            # Model evaluation
+            # Train and evaluate models
             results = {}
             models = {
                 "Logistic Regression": LogisticRegression(),
@@ -188,7 +175,6 @@ if page == 'Model Performance':
 
             best_model, best_acc = None, 0
 
-            # Train and evaluate models
             for name, model in models.items():
                 model.fit(X_train_preprocessed, y_train_res)
                 y_pred = model.predict(X_test_preprocessed)
@@ -196,7 +182,6 @@ if page == 'Model Performance':
 
                 acc = accuracy_score(y_test, y_pred)
 
-                # Handle binary and multiclass separately for AUC
                 if len(np.unique(y_test)) == 2:
                     auc_value = roc_auc_score(y_test, y_proba[:, 1])
                 else:
@@ -213,17 +198,131 @@ if page == 'Model Performance':
                     best_acc = acc
                     best_model = model
 
-            st.write("### 🏆 Model Performance")
-            st.dataframe(pd.DataFrame(results).T)
+            # Accuracy plot section
+            st.markdown("### 📊 Model Accuracy Comparison 🏅")
+            st.write("The bar chart below shows the accuracy of each model evaluated.")
 
-            # Save the best model
+            fig, ax = plt.subplots(figsize=(10, 6))
+            model_names = list(results.keys())
+            accuracies = [results[name]['Accuracy'] for name in model_names]
+
+            ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+            ax.set_xlabel('Accuracy', color='#001a33')
+            ax.set_title('Model Accuracy Comparison', color='#cc0000')
+            st.pyplot(fig)
+
+            # ROC curve plot section
+            st.markdown("### 📈 ROC Curve for Each Model 📉")
+            st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            for name, model in models.items():
+                y_score = model.predict_proba(X_test_preprocessed)
+
+                if len(np.unique(y_test)) == 2:
+                    fpr, tpr, _ = roc_curve(y_test, y_score[:, 1])
+                    roc_auc = auc(fpr, tpr)
+                    ax.plot(fpr, tpr, label=f'{name} (AUC = {roc_auc:.2f})')
+                else:
+                    from sklearn.preprocessing import label_binarize
+                    y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+                    if y_score.shape[1] != y_test_bin.shape[1]:
+                        continue
+                    for i in range(y_test_bin.shape[1]):
+                        fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_score[:, i])
+                        roc_auc = auc(fpr, tpr)
+                        ax.plot(fpr, tpr, label=f'{name} - Class {i} (AUC = {roc_auc:.2f})')
+
+            ax.plot([0, 1], [0, 1], 'k--')
+            ax.set_xlabel('False Positive Rate')
+            ax.set_ylabel('True Positive Rate')
+            ax.set_title('ROC Curve Comparison')
+            ax.legend(loc='lower right')
+            st.pyplot(fig)
+
+            # Save the best model to disk
             if best_model:
                 with open("best_model.pkl", "wb") as f:
                     pickle.dump(best_model, f)
                 st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
-    
+
+            # --- Prediction form section ---
+            st.subheader("Enter your information below:")
+
+            age = st.slider("Age", 18, 100, 30)
+            job = st.selectbox("Job", ['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 
+                                       'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown'])
+            education = st.selectbox("Education", ['basic.4y', 'basic.6y', 'basic.9y', 'high.school', 
+                                                   'illiterate', 'professional.course', 'university.degree', 'unknown'])
+            default = st.selectbox("Has Credit in Default?", ['yes', 'no'])
+            housing = st.selectbox("Has Housing Loan?", ['yes', 'no'])
+            loan = st.selectbox("Has Personal Loan?", ['yes', 'no'])
+            contact = st.selectbox("Contact Communication Type", ['cellular', 'telephone'])
+            dayofweek = st.selectbox("Day of Week", ['mon', 'tue', 'wed', 'thu', 'fri'])
+            duration = st.number_input("Last Contact Duration (seconds)", min_value=0, value=100)
+            campaign = st.number_input("Number of Contacts During Campaign", min_value=1, value=1)
+            pdays = st.number_input("Days Since Last Contact", min_value=-1, value=-1)
+            nr_employed = st.number_input("Number of Employees (Economic Indicator)", min_value=0.0, value=5000.0)
+
+            input_df = pd.DataFrame({
+                'age': [age],
+                'job': [job],
+                'education': [education],
+                'default': [default],
+                'housing': [housing],
+                'loan': [loan],
+                'contact': [contact],
+                'day_of_week': [dayofweek],
+                'duration': [duration],
+                'campaign': [campaign],
+                'pdays': [pdays],
+                'nr.employed': [nr_employed],
+                'previous': [0],  # Default value
+                'emp.var.rate': [1.1],
+                'poutcome': ['nonexistent'],
+                'euribor3m': [4.5],
+                'month': ['may'],
+                'cons.price.idx': [93.2],
+                'cons.conf.idx': [-40.0],
+                'marital': ['married']
+            })
+
+            processed_input = preprocessor.transform(input_df)
+
+            # Load best model for prediction
+            model = None
+            try:
+                with open("best_model.pkl", "rb") as f:
+                    model = pickle.load(f)
+            except Exception as e:
+                st.error("Failed to load the best model for prediction.")
+                st.error(str(e))
+
+            if model:
+                if st.button("Predict Credit Approval"):
+                    prediction = model.predict(processed_input)
+                    if prediction[0] == 1:
+                        st.success("✅ Credit Approved!")
+                    else:
+                        st.error("❌ Credit Not Approved.")
+
+                    probability = model.predict_proba(processed_input)[0][1]
+                    credit_score = int(380 + (probability * 550))  # Scale score from 300-850
+
+                    st.write(f"🧮 Estimated Credit Score: **{credit_score}**")
+
+                    if credit_score >= 500:
+                        st.success("💚 Excellent credit score!")
+                    elif credit_score >= 450:
+                        st.info("💛 Good credit score.")
+                    elif credit_score >= 400:
+                        st.warning("🧡 Fair credit score.")
+                    else:
+                        st.error("❤️ Poor credit score.")
+
     else:
         st.error(f"🚫 File not found at: {file_path}")
+
 
 elif page == 'Logistic Regression':
     st.write("""
@@ -262,132 +361,7 @@ elif page == 'Neural Network':
     - They are especially useful in tasks like image recognition, speech processing, and natural language processing.
     - Training a neural network involves adjusting the weights between the neurons to minimize the error.
     """)
-# Add a section for the accuracy plot
-st.markdown("### 📊 Model Accuracy Comparison 🏅")
-st.write("The bar chart below shows the accuracy of each model evaluated.")
 
-# Plot Accuracy of Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
-model_names = list(results.keys())
-accuracies = [results[name]['Accuracy'] for name in model_names]
-
-ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
-ax.set_xlabel('Accuracy', color='#001a33')
-ax.set_title('Model Accuracy Comparison', color='#cc0000')
-st.pyplot(fig)
-
-# Add a section for the ROC curve plot
-st.markdown("### 📈 ROC Curve for Each Model 📉")
-st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
-
-# Plot AUC Curve for Each Model
-fig, ax = plt.subplots(figsize=(10, 6))
-
-for name, model in models.items():
-    y_score = model.predict_proba(X_test_preprocessed)
-
-    if len(np.unique(y_test)) == 2:  # Binary classification
-        fpr, tpr, _ = roc_curve(y_test, y_score[:, 1])
-        roc_auc = auc(fpr, tpr)
-        ax.plot(fpr, tpr, label=f'{name} (AUC = {roc_auc:.2f})')
-    else:  # Multi-class classification
-        # Binarize the output
-        from sklearn.preprocessing import label_binarize
-        y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
-        if y_score.shape[1] != y_test_bin.shape[1]:
-            continue  # Skip plotting if mismatch
-        for i in range(y_test_bin.shape[1]):
-            fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_score[:, i])
-            roc_auc = auc(fpr, tpr)
-            ax.plot(fpr, tpr, label=f'{name} - Class {i} (AUC = {roc_auc:.2f})')
-
-ax.plot([0, 1], [0, 1], 'k--')
-ax.set_xlabel('False Positive Rate')
-ax.set_ylabel('True Positive Rate')
-ax.set_title('ROC Curve Comparison')
-ax.legend(loc='lower right')
-st.pyplot(fig)
-
-
-# Display the best model after the plots
-st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
-
-
-
-model = joblib.load("best_model.pkl")  # Ensure you saved it previously
-
-st.subheader("Enter your information below:")
-
-age = st.slider("Age", 18, 100, 30)
-job = st.selectbox("Job", ['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 
-                           'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown'])
-education = st.selectbox("Education", ['basic.4y', 'basic.6y', 'basic.9y', 'high.school', 
-                                       'illiterate', 'professional.course', 'university.degree', 'unknown'])
-default = st.selectbox("Has Credit in Default?", ['yes', 'no'])
-housing = st.selectbox("Has Housing Loan?", ['yes', 'no'])
-loan = st.selectbox("Has Personal Loan?", ['yes', 'no'])
-contact = st.selectbox("Contact Communication Type", ['cellular', 'telephone'])
-dayofweek = st.selectbox("Day of Week", ['mon', 'tue', 'wed', 'thu', 'fri'])
-duration = st.number_input("Last Contact Duration (seconds)", min_value=0, value=100)
-campaign = st.number_input("Number of Contacts During Campaign", min_value=1, value=1)
-pdays = st.number_input("Days Since Last Contact", min_value=-1, value=-1)
-nr_employed = st.number_input("Number of Employees (Economic Indicator)", min_value=0.0, value=5000.0)
-
-# Add missing columns with defaults (assume safest default or most common values)
-input_df = pd.DataFrame({
-    'age': [age],
-    'job': [job],
-    'education': [education],
-    'default': [default],
-    'housing': [housing],
-    'loan': [loan],
-    'contact': [contact],
-    'day_of_week': [dayofweek],
-    'duration': [duration],
-    'campaign': [campaign],
-    'pdays': [pdays],
-    'nr.employed': [nr_employed],
-    'previous': [0],  # Default to 0 previous contacts
-    'emp.var.rate': [1.1],  # Example average value; adjust if known
-    'poutcome': ['nonexistent'],  # Most common value for this field
-    'euribor3m': [4.5],  # Approximate average; adjust as needed
-    'month': ['may'],  # Default to most frequent month
-    'cons.price.idx': [93.2],  # Example value
-    'cons.conf.idx': [-40.0],  # Example value
-    'marital': ['married']  # Common marital status
-})
-
-# Optional: If you saved expected columns during training, you can reindex:
-# input_df = input_df.reindex(columns=expected_columns)
-
-# Apply preprocessing
-processed_input = preprocessor.transform(input_df)
-
-# Predict
-if st.button("Predict Credit Approval"):
-    prediction = model.predict(processed_input)
-    if prediction[0] == 1:
-        st.success("✅ Credit Approved!")
-    else:
-        st.error("❌ Credit Not Approved.")
-
-# Get prediction probability (for class 1 - approval)
-probability = model.predict_proba(processed_input)[0][1]
-
-# Scale probability to a credit score range (e.g., 300 to 850)
-credit_score = int(380 + (probability * 550))  # 550 = 850 - 300
-
-st.write(f"🧮 Estimated Credit Score: **{credit_score}**")
-
-# Optional: Add rating explanation
-if credit_score >= 500:
-    st.success("💚 Excellent credit score!")
-elif credit_score >= 450:
-    st.info("💛 Good credit score.")
-elif credit_score >= 400:
-    st.warning("🧡 Fair credit score.")
-else:
-    st.error("❤️ Poor credit score.")
 
 
 
