@@ -219,90 +219,92 @@ ax.set_ylabel('True Positive Rate')
 ax.set_title('ROC Curves')
 ax.legend()
 st.pyplot(fig)
+# Save the best model to disk
+if best_model:
+    with open("best_model.pkl", "wb") as f:
+        pickle.dump(best_model, f)
+    st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
 
-            # Save the best model to disk
-            if best_model:
-                with open("best_model.pkl", "wb") as f:
-                    pickle.dump(best_model, f)
-                st.success(f"🏅 Best Model: {max(results, key=lambda k: results[k]['Accuracy'])} with Accuracy: {best_acc:.2f}")
+# --- Prediction form section ---
+st.subheader("Enter your information below:")
 
-            # --- Prediction form section ---
-            st.subheader("Enter your information below:")
+age = st.slider("Age", 18, 100, 30)
+job = st.selectbox("Job", ['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 
+                           'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown'])
+education = st.selectbox("Education", ['basic.4y', 'basic.6y', 'basic.9y', 'high.school', 
+                                       'illiterate', 'professional.course', 'university.degree', 'unknown'])
+default = st.selectbox("Has Credit in Default?", ['yes', 'no'])
+housing = st.selectbox("Has Housing Loan?", ['yes', 'no'])
+loan = st.selectbox("Has Personal Loan?", ['yes', 'no'])
+contact = st.selectbox("Contact Communication Type", ['cellular', 'telephone'])
+dayofweek = st.selectbox("Day of Week", ['mon', 'tue', 'wed', 'thu', 'fri'])
+duration = st.number_input("Last Contact Duration (seconds)", min_value=0, value=100)
+campaign = st.number_input("Number of Contacts During Campaign", min_value=1, value=1)
+pdays = st.number_input("Days Since Last Contact", min_value=-1, value=-1)
+nr_employed = st.number_input("Number of Employees (Economic Indicator)", min_value=0.0, value=5000.0)
 
-            age = st.slider("Age", 18, 100, 30)
-            job = st.selectbox("Job", ['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 
-                                       'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown'])
-            education = st.selectbox("Education", ['basic.4y', 'basic.6y', 'basic.9y', 'high.school', 
-                                                   'illiterate', 'professional.course', 'university.degree', 'unknown'])
-            default = st.selectbox("Has Credit in Default?", ['yes', 'no'])
-            housing = st.selectbox("Has Housing Loan?", ['yes', 'no'])
-            loan = st.selectbox("Has Personal Loan?", ['yes', 'no'])
-            contact = st.selectbox("Contact Communication Type", ['cellular', 'telephone'])
-            dayofweek = st.selectbox("Day of Week", ['mon', 'tue', 'wed', 'thu', 'fri'])
-            duration = st.number_input("Last Contact Duration (seconds)", min_value=0, value=100)
-            campaign = st.number_input("Number of Contacts During Campaign", min_value=1, value=1)
-            pdays = st.number_input("Days Since Last Contact", min_value=-1, value=-1)
-            nr_employed = st.number_input("Number of Employees (Economic Indicator)", min_value=0.0, value=5000.0)
+input_df = pd.DataFrame({
+    'age': [age],
+    'job': [job],
+    'education': [education],
+    'default': [default],
+    'housing': [housing],
+    'loan': [loan],
+    'contact': [contact],
+    'day_of_week': [dayofweek],
+    'duration': [duration],
+    'campaign': [campaign],
+    'pdays': [pdays],
+    'nr.employed': [nr_employed],
+    'previous': [0],  # Default value
+    'emp.var.rate': [1.1],
+    'poutcome': ['nonexistent'],
+    'euribor3m': [4.5],
+    'month': ['may'],
+    'cons.price.idx': [93.2],
+    'cons.conf.idx': [-40.0],
+    'marital': ['married']
+})
 
-            input_df = pd.DataFrame({
-                'age': [age],
-                'job': [job],
-                'education': [education],
-                'default': [default],
-                'housing': [housing],
-                'loan': [loan],
-                'contact': [contact],
-                'day_of_week': [dayofweek],
-                'duration': [duration],
-                'campaign': [campaign],
-                'pdays': [pdays],
-                'nr.employed': [nr_employed],
-                'previous': [0],  # Default value
-                'emp.var.rate': [1.1],
-                'poutcome': ['nonexistent'],
-                'euribor3m': [4.5],
-                'month': ['may'],
-                'cons.price.idx': [93.2],
-                'cons.conf.idx': [-40.0],
-                'marital': ['married']
-            })
+processed_input = preprocessor.transform(input_df)
 
-            processed_input = preprocessor.transform(input_df)
+# Load best model for prediction
+model = None
+try:
+    with open("best_model.pkl", "rb") as f:
+        model = pickle.load(f)
+except Exception as e:
+    st.error("Failed to load the best model for prediction.")
+    st.error(str(e))
 
-            # Load best model for prediction
-            model = None
-            try:
-                with open("best_model.pkl", "rb") as f:
-                    model = pickle.load(f)
-            except Exception as e:
-                st.error("Failed to load the best model for prediction.")
-                st.error(str(e))
+if model:
+    if st.button("Predict Credit Approval"):
+        prediction = model.predict(processed_input)
+        if prediction[0] == 1:
+            st.success("✅ Credit Approved!")
+        else:
+            st.error("❌ Credit Not Approved.")
 
-            if model:
-                if st.button("Predict Credit Approval"):
-                    prediction = model.predict(processed_input)
-                    if prediction[0] == 1:
-                        st.success("✅ Credit Approved!")
-                    else:
-                        st.error("❌ Credit Not Approved.")
+        probability = model.predict_proba(processed_input)[0][1]
+        credit_score = int(380 + (probability * 550))  # Scale score from 300-850
 
-                    probability = model.predict_proba(processed_input)[0][1]
-                    credit_score = int(380 + (probability * 550))  # Scale score from 300-850
+        st.write(f"🧮 Estimated Credit Score: **{credit_score}**")
 
-                    st.write(f"🧮 Estimated Credit Score: **{credit_score}**")
+        if credit_score >= 500:
+            st.success("💚 Excellent credit score!")
+        elif credit_score >= 450:
+            st.info("💛 Good credit score.")
+        elif credit_score >= 400:
+            st.warning("🧡 Fair credit score.")
+        else:
+            st.error("❤️ Poor credit score.")
 
-                    if credit_score >= 500:
-                        st.success("💚 Excellent credit score!")
-                    elif credit_score >= 450:
-                        st.info("💛 Good credit score.")
-                    elif credit_score >= 400:
-                        st.warning("🧡 Fair credit score.")
-                    else:
-                        st.error("❤️ Poor credit score.")
 
-    else:
+else:
         st.error(f"🚫 File not found at: {file_path}")
         results={}
+
+          
 
 
 elif page == 'Logistic Regression':
