@@ -130,8 +130,7 @@ if page == 'Model Performance':
             X_test_preprocessed = pipeline.transform(X_test)
 
             under_sampler = RandomUnderSampler(random_state=42)
-            X_train_dense = X_train_preprocessed.toarray() if hasattr(X_train_preprocessed, 'toarray') else X_train_preprocessed
-            X_train_res, y_train_res = under_sampler.fit_resample(X_train_dense, y_train)
+            X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
             # Feature names extraction
             feature_names = []
             for name, transformer, columns in preprocessor.transformers_:
