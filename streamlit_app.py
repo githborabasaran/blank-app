@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -12,12 +12,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.feature_selection import RFE
-import os
-import joblib
-from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve, auc
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, auc
 from imblearn.under_sampling import RandomUnderSampler
+import os
 
-# Set Streamlit theme with vibrant colors
+# --- Streamlit theme ---
 st.markdown("""
     <style>
         body {
@@ -27,12 +26,11 @@ st.markdown("""
         .stApp {
             background-color: #cce0ff;
         }
-        .stTitle {
+        h1 {
             color: #ff4500;
-            font-size: 36px;
             font-weight: bold;
         }
-        .stSelectbox label {
+        .stSelectbox label, .stSlider label {
             color: #cc0000;
             font-size: 18px;
         }
@@ -51,192 +49,176 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def preprocess_data(df, target_column):
-    df = df.dropna().drop_duplicates()
-    num_features = df.select_dtypes(include=['int64', 'float64']).columns.to_list()
-    cat_features = df.select_dtypes(include=['object', 'category']).columns.to_list()
-    
-    if target_column in num_features:
-        num_features.remove(target_column)
-    if target_column in cat_features:
-        cat_features.remove(target_column)
-    
-    preprocessor = ColumnTransformer([
-        ('num', StandardScaler(), num_features),
-        ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_features)
-    ])
-    
-    return df, preprocessor, num_features, cat_features
-
-# Navigation Buttons
-st.markdown("""
-    <style>
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
-        .logo-container img {
-            width: 70px;
-            margin-right: 60px;
-        }
-        .logo-container h1 {
-            margin: 0;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# Display title with logo
-
-st.markdown(f"""
-    <div class="logo-container">
-       
-        <h1>🎨📊 ADS542 - Project Streamlit</h1>
-    </div>
-""", unsafe_allow_html=True)
+# Title
+st.title("🎨📊 ADS542 - Project Streamlit")
 
 st.markdown("### 🚀 Upload your dataset and explore the results!")
 
-# Add navigation buttons for model explanation sections
-page = st.radio("Navigate to Model Explanations:", ['Model Performance', 'Logistic Regression', 'Random Forest', 'Neural Network'])
-# The page condition
-# The page condition
-if page == 'Model Performance':
-    # ✅ Use hardcoded file path
-    file_path = 'bank-additional.csv'
+# --- Load dataset ---
+file_path = 'bank-additional.csv'
 
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path, sep=';', quotechar='"')
-        st.write("### 📜 Uploaded Data Preview")
-        st.dataframe(df.head())
+if not os.path.exists(file_path):
+    st.error(f"File '{file_path}' not found! Please upload your dataset or check the file path.")
+    st.stop()
 
-        target_column = 'y'
-        if target_column not in df.columns:
-            st.error(f"🚫 The target column '{target_column}' does not exist in the dataset!")
+df = pd.read_csv(file_path, sep=';', quotechar='"')
+st.write("### 📜 Dataset Preview")
+st.dataframe(df.head())
+
+target_column = 'y'
+if target_column not in df.columns:
+    st.error(f"🚫 The target column '{target_column}' does not exist in the dataset!")
+    st.stop()
+
+# --- Preprocessing ---
+
+# Clean data
+df = df.dropna().drop_duplicates()
+
+# Identify numeric and categorical features
+num_features = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_features = df.select_dtypes(include=['object', 'category']).columns.tolist()
+
+# Remove target column from features list
+if target_column in num_features:
+    num_features.remove(target_column)
+if target_column in cat_features:
+    cat_features.remove(target_column)
+
+# Build preprocessing pipeline
+preprocessor = ColumnTransformer([
+    ('num', StandardScaler(), num_features),
+    ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_features)
+])
+
+# Split features and target
+X = df.drop(columns=[target_column])
+y = df[target_column]
+
+# Encode target if needed
+if y.dtype == 'object':
+    y = LabelEncoder().fit_transform(y)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Fit preprocessor only on training set
+X_train_preprocessed = preprocessor.fit_transform(X_train)
+X_test_preprocessed = preprocessor.transform(X_test)
+
+# --- Undersample ---
+under_sampler = RandomUnderSampler(random_state=42)
+X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
+
+# --- Extract feature names ---
+feature_names = []
+
+# numeric feature names
+feature_names.extend(num_features)
+
+# categorical feature names from onehot encoder
+ohe = preprocessor.named_transformers_['cat']
+cat_feature_names = ohe.get_feature_names_out(cat_features)
+feature_names.extend(cat_feature_names.tolist())
+
+# --- Feature Selection with RFE ---
+rfe_model = LogisticRegression(random_state=42, max_iter=1000)
+selector = RFE(rfe_model, n_features_to_select=min(10, X_train_res.shape[1]))
+X_train_rfe = selector.fit_transform(X_train_res, y_train_res)
+
+# --- Random Forest for feature importance ---
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train_res, y_train_res)
+importances = rf_model.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+top_n = min(10, len(feature_names))
+top_features = [feature_names[i] for i in indices[:top_n]]
+
+st.write("### 🌟 Top 10 Important Features")
+st.dataframe(pd.DataFrame({'Feature': top_features, 'Importance': importances[indices[:top_n]]}))
+
+fig, ax = plt.subplots()
+ax.barh(top_features[::-1], importances[indices[:top_n]][::-1], color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
+ax.set_xlabel("Feature Importance", color="#001a33")
+ax.set_title("Top 10 Important Features", color="#cc0000")
+st.pyplot(fig)
+
+# --- Train models ---
+results = {}
+models = {
+    "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000),
+    "Random Forest": RandomForestClassifier(random_state=42),
+    "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
+}
+
+best_model = None
+best_acc = 0
+
+for name, model in models.items():
+    model.fit(X_train_res, y_train_res)
+    y_pred = model.predict(X_test_preprocessed)
+    
+    if hasattr(model, "predict_proba"):
+        y_proba = model.predict_proba(X_test_preprocessed)
+    else:
+        y_proba = None
+
+    acc = accuracy_score(y_test, y_pred)
+    auc_value = np.nan
+    if y_proba is not None:
+        if len(np.unique(y_test)) == 2:
+            auc_value = roc_auc_score(y_test, y_proba[:, 1])
         else:
-            # Preprocess data
-            df, preprocessor, num_features, cat_features = preprocess_data(df, target_column)
+            from sklearn.preprocessing import label_binarize
+            y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+            if y_proba.shape[1] == y_test_bin.shape[1]:
+                auc_value = roc_auc_score(y_test_bin, y_proba, multi_class='ovr', average='macro')
 
-            X = df.drop(columns=[target_column])
-            y = df[target_column]
+    results[name] = {'Accuracy': acc, 'AUC': auc_value}
 
-            if y.dtypes == 'object':
-                y = LabelEncoder().fit_transform(y)
+    if acc > best_acc:
+        best_acc = acc
+        best_model = model
 
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# --- Display model accuracy ---
+st.markdown("### 📊 Model Accuracy Comparison 🏅")
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.barh(list(results.keys()), [r['Accuracy'] for r in results.values()], color=['#001a33', '#ff4500', '#990000'])
+ax.set_xlabel('Accuracy', color='#001a33')
+ax.set_title('Model Accuracy Comparison', color='#cc0000')
+st.pyplot(fig)
 
-            pipeline = Pipeline([('preprocessor', preprocessor)])
+# --- ROC curves ---
+st.markdown("### 📈 ROC Curve for Each Model 📉")
+fig, ax = plt.subplots(figsize=(8, 6))
 
-            X_train_preprocessed = pipeline.fit_transform(X_train)
-            X_test_preprocessed = pipeline.transform(X_test)
+for name, model in models.items():
+    if not hasattr(model, "predict_proba"):
+        continue
 
-            under_sampler = RandomUnderSampler(random_state=42)
-            X_train_res, y_train_res = under_sampler.fit_resample(np.array(X_train_preprocessed), np.array(y_train))
-            # Feature names extraction
-            feature_names = []
-            for name, transformer, columns in preprocessor.transformers_:
-                if hasattr(transformer, 'get_feature_names_out'):
-                    feature_names.extend(transformer.get_feature_names_out(columns))
-                else:
-                    feature_names.extend(columns)
+    y_proba = model.predict_proba(X_test_preprocessed)
 
-            # Feature selection with RFE
-            model_rfe = LogisticRegression(random_state=42)
-            selector = RFE(model_rfe, n_features_to_select=min(10, X_train_preprocessed.shape[1]))
-            X_train_rfe = selector.fit_transform(X_train_preprocessed, y_train_res)
+    if len(np.unique(y_test)) == 2:
+        fpr, tpr, _ = roc_curve(y_test, y_proba[:, 1])
+        roc_auc = auc(fpr, tpr)
+        ax.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.2f})")
+    else:
+        from sklearn.preprocessing import label_binarize
+        y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+        if y_proba.shape[1] != y_test_bin.shape[1]:
+            continue
+        for i in range(y_test_bin.shape[1]):
+            fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
+            roc_auc = auc(fpr, tpr)
+            ax.plot(fpr, tpr, label=f"{name} Class {i} (AUC = {roc_auc:.2f})")
 
-            # Random Forest for feature importance
-            rf_model = RandomForestClassifier(random_state=42)
-            rf_model.fit(X_train_preprocessed, y_train_res)
-
-            importances = rf_model.feature_importances_
-            indices = np.argsort(importances)[::-1]
-
-            top_n = min(10, len(feature_names))
-            top_features = [feature_names[i] for i in indices[:top_n]]
-
-            st.write("### 🌟 Top 10 Important Features")
-            st.dataframe(pd.DataFrame({'Feature': top_features, 'Importance': importances[indices[:top_n]]}))
-
-            fig, ax = plt.subplots()
-            ax.barh(top_features, importances[indices[:top_n]], color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
-            ax.set_xlabel("Feature Importance", color="#001a33")
-            ax.set_title("Top 10 Important Features", color="#cc0000")
-            st.pyplot(fig)
-
-            # Train and evaluate models
-            results = {}
-            models = {
-                "Logistic Regression": LogisticRegression(),
-                "Random Forest": RandomForestClassifier(),
-                "Neural Network": MLPClassifier(max_iter=1000, solver='adam', early_stopping=True, random_state=42)
-            }
-
-            best_model, best_acc = None, 0
-
-            for name, model in models.items():
-                model.fit(X_train_preprocessed, y_train_res)
-                y_pred = model.predict(X_test_preprocessed)
-                y_proba = model.predict_proba(X_test_preprocessed)
-
-                acc = accuracy_score(y_test, y_pred)
-
-                if len(np.unique(y_test)) == 2:
-                    auc_value = roc_auc_score(y_test, y_proba[:, 1])
-                else:
-                    num_classes = len(np.unique(y_test))
-                    if y_proba.shape[1] != num_classes:
-                        st.warning(f"{name} returned {y_proba.shape[1]} prob columns, expected {num_classes}")
-                        auc_value = np.nan
-                    else:
-                        auc_value = roc_auc_score(y_test, y_proba, multi_class="ovr", average="macro")
-
-                results[name] = {'Accuracy': acc, 'AUC': auc_value}
-
-                if acc > best_acc:
-                    best_acc = acc
-                    best_model = model
-
-            # Accuracy plot section
-            st.markdown("### 📊 Model Accuracy Comparison 🏅")
-            st.write("The bar chart below shows the accuracy of each model evaluated.")
-
-            fig, ax = plt.subplots(figsize=(10, 6))
-            model_names = list(results.keys())
-            accuracies = [results[name]['Accuracy'] for name in model_names]
-
-            ax.barh(model_names, accuracies, color=['#001a33', '#ff4500', '#990000', '#ffa500', '#33cc33'])
-            ax.set_xlabel('Accuracy', color='#001a33')
-            ax.set_title('Model Accuracy Comparison', color='#cc0000')
-            st.pyplot(fig)
-
-            # ROC curve plot section
-            st.markdown("### 📈 ROC Curve for Each Model 📉")
-            st.write("The ROC curve below compares the true positive rate (TPR) and false positive rate (FPR) of each model.")
-
-            fig, ax = plt.subplots(figsize=(10, 6))
-            for name, model in models.items():
-                y_score = model.predict_proba(X_test_preprocessed)
-
-                if len(np.unique(y_test)) == 2:
-                    fpr, tpr, _ = roc_curve(y_test, y_score[:, 1])
-                    roc_auc = auc(fpr, tpr)
-                    ax.plot(fpr, tpr, label=f'{name} (AUC = {roc_auc:.2f})')
-                else:
-                    from sklearn.preprocessing import label_binarize
-                    y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
-                    if y_score.shape[1] != y_test_bin.shape[1]:
-                        continue
-                    for i in range(y_test_bin.shape[1]):
-                        fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_score[:, i])
-                        roc_auc = auc(fpr, tpr)
-                        ax.plot(fpr, tpr, label=f'{name} - Class {i} (AUC = {roc_auc:.2f})')
-
-            ax.plot([0, 1], [0, 1], 'k--')
-            ax.set_xlabel('False Positive Rate')
-            ax.set_ylabel('True Positive Rate')
-            ax.set_title('ROC Curve Comparison')
-            ax.legend(loc='lower right')
-            st.pyplot(fig)
+ax.plot([0,1], [0,1], 'k--')
+ax.set_xlabel('False Positive Rate')
+ax.set_ylabel('True Positive Rate')
+ax.set_title('ROC Curves')
+ax.legend()
+st.pyplot(fig)
 
             # Save the best model to disk
             if best_model:
