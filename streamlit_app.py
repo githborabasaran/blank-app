@@ -13,9 +13,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.feature_selection import RFE
 import os
-from imblearn.under_sampling import RandomUnderSampler  # Import RandomUnderSampler
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix, roc_curve, auc
+from imblearn.under_sampling import RandomUnderSampler
 
 # Set Streamlit theme with vibrant colors
 st.markdown("""
