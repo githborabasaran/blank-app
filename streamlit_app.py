@@ -108,6 +108,9 @@ X_test_preprocessed = preprocessor.transform(X_test)
 
 # --- Undersample ---
 under_sampler = RandomUnderSampler(random_state=42)
+
+st.write(f"Shape of X_train_preprocessed: {X_train_preprocessed.shape}")
+st.write(f"Length of y_train: {len(y_train)}")
 X_train_res, y_train_res = under_sampler.fit_resample(X_train_preprocessed, y_train)
 
 # --- Extract feature names ---
